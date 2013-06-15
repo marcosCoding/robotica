@@ -8,9 +8,13 @@ function sessio3(serPort)
 			%bug1(serPort,[-4,1]);
 		%bug1(serPort,[1, -4]);
 		bug1(serPort,[-5,-4]);
-		
+
 	
 		function bug1(serPort,objectiu)
+
+
+
+
 			obstacle=false;
 			%[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
 			%linia = (objectiu - [x, y]);
@@ -35,50 +39,43 @@ function sessio3(serPort)
 				SetDriveWheelsCreate(serPort,.0,.0);
 				
 			end
+		
 			followBoundary(serPort,objectiu);
 
 
 		end
 		%% ERROR!!!
-		function preFollowBoundary ()
+		function preFollowBoundary()
+			
 			distancia=[];
 			angulos=[];
 			[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
            	anguloActual=pasarAGrados(anguloRads);
+           	i=1;
 
-
-			fprintf('Inicializamos preFollowBoundary');
-			turnAngle(serPort, .2,90);
-			distancia(1)= ReadSonarMultiple(serPort,1);
-			[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-           	angulos(1)=adaptarGrados(pasarAGrados(anguloRads));
-
-			turnAngle(serPort, .2,90);
-			distancia(2)= ReadSonarMultiple(serPort,1)
-			[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-           	angulos(2)=adaptarGrados(pasarAGrados(anguloRads));
-
-			turnAngle(serPort, .2,90);
-			distancia(3)= ReadSonarMultiple(serPort,1)
-			[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-           	angulos(3)=adaptarGrados(pasarAGrados(anguloRads));
-
-			turnAngle(serPort, .2,90);
-			distancia(4)= ReadSonarMultiple(serPort,1)
-			[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-           	angulos(4)=adaptarGrados(pasarAGrados(anguloRads))
-           	
-           	indice=find(distancia==min(distancia));
+           
+           	while i < 13
+           		i
+           		beep();
+           		turnAngle(serPort, .2,30);
+           		distancia(i)= ReadSonarMultiple(serPort,1)
+				[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
+           		angulos(i)=adaptarGrados(pasarAGrados(anguloRads));
+           		i=i+1 ;
+				pause(0.1);
+				
+	
+			end
+			
+            angulos
+            distancia
+			indice=find(distancia==min(distancia));
            	anguloDestino=angulos(indice)
            	[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-           	anguloSensor=pasarAGrados(anguloRads);
-           	anguloSensor=adaptarGrados(anguloSensor)
-           	anguloDestino=valorAbsoluto((360-anguloSensor)+anguloDestino);
-           	fprintf('el angulo hal que hay que ir es ');
-           	anguloDestino
-           	turnAngle(serPort, .2,anguloDestino);
-           	beep();
-			
+           	anguloSensor=pasarAGrados(anguloRads)
+           	
+
+           			
 
            	%recalcularAngulo(serPort);
 	
@@ -208,8 +205,8 @@ function sessio3(serPort)
 			%adapta para que el valor este en un intervalo de 
 			%0 a 360 no de 0 a 180 i -180 a 0
 			if valor < 0
-				convertido=-valor-180;
-				convertido=-convertido+180;
+				convertido=-valor -180
+				convertido=180+convertido;
 			else
 				convertido=valor;
 			end
