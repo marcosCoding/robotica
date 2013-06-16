@@ -4,82 +4,57 @@
 
 function sessio3(serPort)
 
-		%bug1(serPort,[3.5,-1]);
-			%bug1(serPort,[-4,1]);
-		%bug1(serPort,[1, -4]);
-		bug1(serPort,[-5,-4]);
-
-	
+		bug1(serPort,[2,5]);
 		function bug1(serPort,objectiu)
-
-
-
-
 			obstacle=false;
-			%[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-			%linia = (objectiu - [x, y]);
 			[BumpRight,BumpLeft,WheDropRight,WheDropLeft,WheDropCaster,BumpFront] = ...     
                  BumpsWheelDropsSensorsRoomba(serPort);
             [x, y, anguloRads]=OverheadLocalizationCreate(serPort);
 			DecisionAnguloGiro(x, y, anguloRads,objectiu);
-
-
-
 			while ~hayObstaculo() && ~hemArribat([x, y], objectiu)
 				fprintf('bucle principal');
 				[x, y]=OverheadLocalizationCreate(serPort);
-				 %[BumpRight,BumpLeft,WheDropRight,WheDropLeft,WheDropCaster,BumpFront] = ...     
-                 %BumpsWheelDropsSensorsRoomba(serPort);
-                 %[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
 				 SetDriveWheelsCreate(serPort,.5,.5);
 				 pause(0.000001);
 			end 
-
 			if hayObstaculo()
 				SetDriveWheelsCreate(serPort,.0,.0);
 				
 			end
-		
 			followBoundary(serPort,objectiu);
-
-
 		end
-		%% ERROR!!!
 		function preFollowBoundary()
-			
+			%la idea de esta funcion es una vez nos encontramos un obstaculo lo que 
+			%lo que queremos es que se quede a la derecha del robot para poder empezar
+			%a rodearlo por la derecha por lo tanto la idea para realizar esto es 
+			%dar una vuelta de unos 360 grados para poder ir guardando en un vector los 
+			%puntos en los que el sensor derecha devuelva una distancia mas cercana
+
 			distancia=[];
 			angulos=[];
 			[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
            	anguloActual=pasarAGrados(anguloRads);
            	i=1;
-
-           
            	while i < 13
-           		i
-           		beep();
            		turnAngle(serPort, .2,30);
            		distancia(i)= ReadSonarMultiple(serPort,1)
 				[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
            		angulos(i)=adaptarGrados(pasarAGrados(anguloRads));
-           		i=i+1 ;
+           		i=i+1;
 				pause(0.1);
-				
-	
 			end
-			
-            angulos
-            distancia
 			indice=find(distancia==min(distancia));
-           	anguloDestino=angulos(indice)
            	[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-           	anguloSensor=pasarAGrados(anguloRads)
-           	
-
-           			
-
-           	%recalcularAngulo(serPort);
-	
-			
+           	anguloSensor=pasarAGrados(anguloRads);
+           	anguloDestino= angulos(indice);
+           	anguloSensor= adaptarGrados(anguloSensor);
+           	if(anguloDestino > anguloSensor)
+           		anguloGiro = valorAbsoluto(anguloDestino-anguloSensor);
+           		turnAngle(serPort, .2,anguloGiro);		
+           	else
+           		anguloGiro = valorAbsoluto(anguloDestino-anguloSensor);
+           		turnAngle(serPort, .2,-anguloGiro);
+         	end    				
 		end
 				
 		
@@ -124,18 +99,18 @@ function sessio3(serPort)
            	end
 
 		end
-			function trobat=hayObstaculo()
+		function trobat=hayObstaculo()
 				 trobat=false;
 				 distDerecha= ReadSonarMultiple(serPort,1);
            		 distFrontal = ReadSonarMultiple(serPort,2);
            		 distIzquierda = ReadSonarMultiple(serPort,3);
-				if distDerecha < 0.2 || distIzquierda < 0.2  || distFrontal < 0.2 
+				if distDerecha < 0.3 || distIzquierda < 0.3  || distFrontal < 0.3 
 					trobat=true; 
 				else
 					trobat =false;
 				end
 
-			end
+		end
 		function StopCreate(serPort) 
 		        % Stop the robot 
 		        % serPort is the serial port number (for controlling the actual robot). 
@@ -205,7 +180,7 @@ function sessio3(serPort)
 			%adapta para que el valor este en un intervalo de 
 			%0 a 360 no de 0 a 180 i -180 a 0
 			if valor < 0
-				convertido=-valor -180
+				convertido=180 +valor
 				convertido=180+convertido;
 			else
 				convertido=valor;
