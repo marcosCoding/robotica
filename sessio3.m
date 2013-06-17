@@ -8,26 +8,54 @@ function sessio3(serPort)
 		
 		
 		function bug1(serPort,objectiu)
-			qGoal=objectiu;
-			obstacle=false;
-			[BumpRight,BumpLeft,WheDropRight,WheDropLeft,WheDropCaster,BumpFront] = ...     
-                 BumpsWheelDropsSensorsRoomba(serPort);
-            [x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-			DecisionAnguloGiro(x, y, anguloRads,objectiu);
-			while ~hayObstaculo() && ~hemArribat([x, y], objectiu)
-				fprintf('Entramos en Bucle principal');
-				[x, y]=OverheadLocalizationCreate(serPort);
-				 SetDriveWheelsCreate(serPort,.5,.5);
-				 pause(0.000001);
-			end 
-			if hayObstaculo()
-				SetDriveWheelsCreate(serPort,.0,.0);
-
-			end
-			[x, y]=OverheadLocalizationCreate(serPort);
-			puntoInicialObstaculo=[x, y]
 			
-			followBoundary(serPort,objectiu,puntoInicialObstaculo);
+			while true
+				qGoal=objectiu;
+				obstacle=false;
+				[BumpRight,BumpLeft,WheDropRight,WheDropLeft,WheDropCaster,BumpFront] = ...     
+	                 BumpsWheelDropsSensorsRoomba(serPort);
+	            [x, y, anguloRads]=OverheadLocalizationCreate(serPort);
+				DecisionAnguloGiro(x, y, anguloRads,objectiu);
+				while ~hayObstaculo() && ~hemArribat([x, y], objectiu)
+					fprintf('Entramos en Bucle principal');
+					[x, y]=OverheadLocalizationCreate(serPort);
+					 SetDriveWheelsCreate(serPort,.5,.5);
+					 pause(0.000001);
+				end 
+				if hayObstaculo()
+					SetDriveWheelsCreate(serPort,.0,.0);
+
+				end
+				if hemArribat([x, y], objectiu)
+					fprintf('hemos llegado a la meta , bien!!!!');
+					return;
+				end
+				[x, y]=OverheadLocalizationCreate(serPort);
+				puntoInicialObstaculo=[x, y]
+				
+				followBoundary(serPort,objectiu,puntoInicialObstaculo);
+				
+					desPegarmeDeObjeto();
+					[x, y,anguloRads]=OverheadLocalizationCreate(serPort);
+					DecisionAnguloGiro(x, y, anguloRads,objectiu);
+					beep();
+					return;
+					while ~hayObstaculo() && ~hemArribat([x, y], objectiu)
+						[x, y]=OverheadLocalizationCreate(serPort);
+					 	SetDriveWheelsCreate(serPort,.5,.5);
+					 	
+					end
+					if hemArribat([x, y], objectiu)
+						fprintf('hemos llegado a la meta , bien!!!!');
+						return;
+					end
+					if hayObstaculo()
+						SetDriveWheelsCreate(serPort,.0,.0);
+						
+					end
+				
+				
+			end
 		end
 		
 		
@@ -73,7 +101,6 @@ function sessio3(serPort)
 			indice=1;
 			hemosDadoVuelta=false;
 			while true
-				
 				[x_actual, y_actual]=OverheadLocalizationCreate(serPort);
 				posicionActual=[];
 				posicionActual(1)=x_actual;
@@ -91,7 +118,6 @@ function sessio3(serPort)
 				distanciaFrontal=ReadSonarMultiple(serPort,2);
 				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 				if hemosDadoVuelta
-					beep();
 					distanciaActual=[];
 					distanciaActual(1)=x_actual;
 					distanciaActual(2)=y_actual;
@@ -99,6 +125,7 @@ function sessio3(serPort)
 					vectDistancias
 					if puntoMasCercanRodeado(dist,vectDistancias)
 						fprintf('podemos dejar de rodear el objeto\n');
+						
 						return;
 					end
 
@@ -161,6 +188,27 @@ function sessio3(serPort)
 			else
 				retorno = false;
 			end
+
+		end
+		function desPegarmeDeObjeto()
+			%esta funcion lo que hace es despegarse del objeto 
+			%una vez hemos detectado que el sensor derecho nos 
+			%devuelve una distancia mas grande que 0.8 
+			%beep();
+			i=1;
+           	while i < 13 
+           		[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
+           		anguloActual=pasarAGrados(anguloRads);
+				distDerecha= ReadSonarMultiple(serPort,1);
+				if distDerecha > 0.8
+					travelDist(serPort,0.1,0.4);
+					return;
+				end
+           		turnAngle(serPort, .2,30); 
+           		i=i+1;
+				pause(0.1);
+			end
+
 
 		end
 		function  condicion= puntoMasCercanRodeado(distanciaActual,vectorDistancias)
