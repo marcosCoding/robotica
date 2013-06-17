@@ -4,18 +4,18 @@
 
 function sessio3(serPort)
 		global qGoal;
-		bug1(serPort,[-5,-4]);
+		%bug1(serPort,[-5,-4]);
+		bug1(serPort,[-3,-3])
 		
 		
 		function bug1(serPort,objectiu)
-			
 			while true
 				qGoal=objectiu;
 				obstacle=false;
 				[BumpRight,BumpLeft,WheDropRight,WheDropLeft,WheDropCaster,BumpFront] = ...     
 	                 BumpsWheelDropsSensorsRoomba(serPort);
 	            [x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-				DecisionAnguloGiro(x, y, anguloRads,objectiu);
+				DecisionAnguloGiro(objectiu);
 				while ~hayObstaculo() && ~hemArribat([x, y], objectiu)
 					fprintf('Entramos en Bucle principal');
 					[x, y]=OverheadLocalizationCreate(serPort);
@@ -32,18 +32,18 @@ function sessio3(serPort)
 				end
 				[x, y]=OverheadLocalizationCreate(serPort);
 				puntoInicialObstaculo=[x, y]
-				
+
 				followBoundary(serPort,objectiu,puntoInicialObstaculo);
-				
+
 					desPegarmeDeObjeto();
 					[x, y,anguloRads]=OverheadLocalizationCreate(serPort);
-					DecisionAnguloGiro(x, y, anguloRads,objectiu);
+					DecisionAnguloGiro(objectiu);
 					beep();
 					return;
 					while ~hayObstaculo() && ~hemArribat([x, y], objectiu)
 						[x, y]=OverheadLocalizationCreate(serPort);
 					 	SetDriveWheelsCreate(serPort,.5,.5);
-					 	
+
 					end
 					if hemArribat([x, y], objectiu)
 						fprintf('hemos llegado a la meta , bien!!!!');
@@ -51,14 +51,14 @@ function sessio3(serPort)
 					end
 					if hayObstaculo()
 						SetDriveWheelsCreate(serPort,.0,.0);
-						
+
 					end
-				
-				
-			end
+
+
+			end	
 		end
 		
-		
+
 		
 		
 		function preFollowBoundary()
@@ -298,51 +298,61 @@ function sessio3(serPort)
 			angulo=double(angulo);
 			grados=double(angulo*(180/pi));
 		end
-		function DecisionAnguloGiro(x, y, anguloRads,objectiu)
-			% x , y->>>> posicion actual
-			% esta funcion decide hace donde girar el robot para que haga 
-			% el minimo giro posible y ademas se mueva hacia el angulo que 
-			% forma la linia mas corta hacia el objetivo atan(angulo)
-			% donde anguloRads es el angulo actual del robot en sentio antihorario
-			% donde objectiu es el punto x e y del punto final al que llegar
-			% donde angulo giro sera el angulo al que girara el robot hacia el objetivo
-			anguloGiro=0
-			catetoContiguo=0	% para calcular el angulo
-			catetoOpuesto=0		% para calcular el angulo
+		function DecisionAnguloGiro(objectiu)
+			
+				
+				qGoal=objectiu
+				[x1, y1,angulo]=OverheadLocalizationCreate(serPort);
+				angulo=pasarAGrados(angulo);
+				angulo=adaptarGrados(angulo);
 
-			anguloActual=pasarAGrados(anguloRads);
-			if objectiu(1) >= 0 && objectiu(2) >= 0		% primer cuadrante	
-				catetoContiguo=objectiu(1)-x;
-				catetoOpuesto=objectiu(2)-y;
-				anguloGiro=atan(catetoOpuesto/catetoContiguo);
-				anguloGiro=pasarAGrados(anguloGiro);
-				anguloGiro=abs(anguloGiro)
-				turnAngle(serPort, .2,anguloGiro);
-			elseif objectiu(1) < 0 && objectiu(2) >= 0	% segundo cuadrante
-				catetoContiguo=abs(objectiu(1)-x);
-				catetoOpuesto=abs(objectiu(2)-y);
-				anguloGiro=atan(catetoOpuesto/catetoContiguo);
-				anguloGiro=pasarAGrados(anguloGiro);
-				anguloGiro=abs(180-anguloGiro)
-				turnAngle(serPort, .2,anguloGiro);
-			elseif objectiu(1)<0 && objectiu(2) < 0 	% tercer cuadrande 
-				catetoContiguo=abs(objectiu(1)-x);
-				catetoOpuesto=abs(objectiu(2)-y);
-				anguloGiro=atan(catetoOpuesto/catetoContiguo);
-				anguloGiro=pasarAGrados(anguloGiro)
-				anguloGiro=abs(180+anguloGiro)
-				turnAngle(serPort, .2,anguloGiro);
-			else
-				pause(2);					% cuarto cuadrande
-				catetoContiguo=abs(objectiu(1)-x);
-				catetoOpuesto=abs(objectiu(2)-y);
-				anguloGiro=atan(catetoOpuesto/catetoContiguo);
-				anguloGiro=pasarAGrados(anguloGiro)
-				anguloGiro=abs(anguloGiro)
+				if angulo <=  180
+					turnAngle(serPort, .2,-angulo);
+				else
+					angulo=360-angulo;
+					turnAngle(serPort,.2,angulo);
+				end
+				[x1, y1,angulo]=OverheadLocalizationCreate(serPort);
+				x2=objectiu(1);
+				y2=objectiu(2);
+				dx=valorAbsoluto(x1-x2)
+				dy=valorAbsoluto(y1-y2)
+				angulo=atan(dy/dx);
+				anguloGiro=pasarAGrados(angulo);
+				if x2 >= x1 && y2 >= y1
+					turnAngle(serPort, .2,anguloGiro);
+					
+				elseif x2 <= x1 && y2 >= y1
+					turnAngle(serPort, .2,180-anguloGiro);
+					anguloExacto=(180-anguloGiro)
+					
+				elseif x2 <=x1 && y2 <= y1
+					angulo=valorAbsoluto(anguloGiro-90);
+					angulo=angulo+90;
+					turnAngle(serPort, .2,-angulo);
+					
+			    elseif x2 >= x1 && y2 <= y1
+			    	anguloGiro
+			    	angulo=valorAbsoluto(anguloGiro);
+			    	turnAngle(serPort, .2,-anguloGiro);
+			    	beep();
+			    end
 
-				turnAngle(serPort, .2,-anguloGiro);
-			end
 
+				%turnAngle(serPort, .2,-anguloGiro);
+
+				[x1, y1,angulo]=OverheadLocalizationCreate(serPort);
+				anguloExacto=anguloGiro+180
+				anguloActual=pasarAGrados(angulo);
+				anguloNoExacto=adaptarGrados(anguloActual)
+				%constante=valorAbsoluto(anguloExacto-anguloNoExacto);
+				
+				%turnAngle(serPort, .2,constante);
+				puntoA=[x1, y1]
+				puntoB = objectiu;
+
+				%dist=getDistancia(puntoA,puntoB);
+				%travelDist(serPort,0.5,dist);
 
 		end
 		function convertido=adaptarGrados(valor)
