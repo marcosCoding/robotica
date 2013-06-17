@@ -5,7 +5,7 @@
 function sessio3(serPort)
 		global qGoal;
 		%bug1(serPort,[-5,-4]);
-		bug1(serPort,[-3,-3])
+		bug1(serPort,[-3,-4])
 		
 		
 		function bug1(serPort,objectiu)
@@ -32,29 +32,25 @@ function sessio3(serPort)
 				end
 				[x, y]=OverheadLocalizationCreate(serPort);
 				puntoInicialObstaculo=[x, y]
-
 				followBoundary(serPort,objectiu,puntoInicialObstaculo);
-
-					desPegarmeDeObjeto();
-					[x, y,anguloRads]=OverheadLocalizationCreate(serPort);
-					DecisionAnguloGiro(objectiu);
-					beep();
-					return;
+				desPegarmeDeObjeto();
+				DecisionAnguloGiro(objectiu);
+				
+				beep();
+				[x, y,anguloRads]=OverheadLocalizationCreate(serPort);
 					while ~hayObstaculo() && ~hemArribat([x, y], objectiu)
-						[x, y]=OverheadLocalizationCreate(serPort);
-					 	SetDriveWheelsCreate(serPort,.5,.5);
+							[x, y]=OverheadLocalizationCreate(serPort);
+						 	SetDriveWheelsCreate(serPort,.5,.5);
 
 					end
 					if hemArribat([x, y], objectiu)
-						fprintf('hemos llegado a la meta , bien!!!!');
-						return;
+							fprintf('hemos llegado a la meta , bien!!!!');
+							return;
 					end
 					if hayObstaculo()
-						SetDriveWheelsCreate(serPort,.0,.0);
+							SetDriveWheelsCreate(serPort,.0,.0);
 
 					end
-
-
 			end	
 		end
 		
