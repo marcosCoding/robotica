@@ -4,7 +4,9 @@
 
 function sessio3(serPort)
 
-		bug1(serPort,[2,5]);
+		bug1(serPort,[-5,-5]);
+		
+		
 		function bug1(serPort,objectiu)
 			obstacle=false;
 			[BumpRight,BumpLeft,WheDropRight,WheDropLeft,WheDropCaster,BumpFront] = ...     
@@ -12,31 +14,36 @@ function sessio3(serPort)
             [x, y, anguloRads]=OverheadLocalizationCreate(serPort);
 			DecisionAnguloGiro(x, y, anguloRads,objectiu);
 			while ~hayObstaculo() && ~hemArribat([x, y], objectiu)
-				fprintf('bucle principal');
+				fprintf('Entramos en Bucle principal');
 				[x, y]=OverheadLocalizationCreate(serPort);
 				 SetDriveWheelsCreate(serPort,.5,.5);
 				 pause(0.000001);
 			end 
 			if hayObstaculo()
 				SetDriveWheelsCreate(serPort,.0,.0);
-				
+
 			end
-			followBoundary(serPort,objectiu);
+			[x, y]=OverheadLocalizationCreate(serPort);
+			puntoInicialObstaculo=[x, y]
+			
+			followBoundary(serPort,objectiu,puntoInicialObstaculo);
 		end
+		
+		
+		
+		
 		function preFollowBoundary()
-			%la idea de esta funcion es una vez nos encontramos un obstaculo lo que 
-			%lo que queremos es que se quede a la derecha del robot para poder empezar
-			%a rodearlo por la derecha por lo tanto la idea para realizar esto es 
-			%dar una vuelta de unos 360 grados para poder ir guardando en un vector los 
-			%puntos en los que el sensor derecha devuelva una distancia mas cercana
+			% Una vez nos encontramos un obstaculo lo dejaremos a la derecha del robot.
+			% Para ello damos una vuelta de 360º sobre nuestro eje y vamos anotando los valores del sensor derecho
+			% en un vector. Una vez que tenemos el valor más pequeño giramos el ángulo que corresponde.
 
 			distancia=[];
 			angulos=[];
 			[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
            	anguloActual=pasarAGrados(anguloRads);
            	i=1;
-           	while i < 13
-           		turnAngle(serPort, .2,30);
+           	while i < 13 
+           		turnAngle(serPort, .2,30); 
            		distancia(i)= ReadSonarMultiple(serPort,1)
 				[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
            		angulos(i)=adaptarGrados(pasarAGrados(anguloRads));
@@ -44,10 +51,8 @@ function sessio3(serPort)
 				pause(0.1);
 			end
 			indice=find(distancia==min(distancia));
-           	[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
-           	anguloSensor=pasarAGrados(anguloRads);
            	anguloDestino= angulos(indice);
-           	anguloSensor= adaptarGrados(anguloSensor);
+           	anguloSensor= getAnguloActual();
            	if(anguloDestino > anguloSensor)
            		anguloGiro = valorAbsoluto(anguloDestino-anguloSensor);
            		turnAngle(serPort, .2,anguloGiro);		
@@ -57,18 +62,106 @@ function sessio3(serPort)
          	end    				
 		end
 				
-		
-		
-		function followBoundary(serPort,objectiu)
-			fprintf('Inicializamos FollowBoundary');
-			preFollowBoundary();
+		function followBoundary(serPort,objectiu,puntoInicialObstaculo)
+			preFollowBoundary();%nos posicionamos para que el obstaculo quede a nuestra derecha
+			vectDistancias=[];
+			distanciaDerecha=ReadSonarMultiple(serPort,1);
+			i=0;
+			while true
+				i
+				[x_actual, y_actual]=OverheadLocalizationCreate(serPort);
+
+				beep();
+				if vueltaCompleta(x_actual, y_actual,puntoInicialObstaculo) && i > 300
+				
+
+					return;
+				end
+				pause(0.0001);
+				distanciaDerecha=ReadSonarMultiple(serPort,1);
+				distanciaFrontal=ReadSonarMultiple(serPort,2);
 
 
-            
+				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+				if distanciaDerecha < 0.20
+					SetDriveWheelsCreate(serPort,.0,.0);
+					turnAngle(serPort, .2,1);
+				end
+				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+				if distanciaDerecha >= 0.20 && distanciaDerecha <= 0.40
+						SetDriveWheelsCreate(serPort,.1,.1);	
+						i=i+1;
+					if distanciaFrontal < 0.3
+						SetDriveWheelsCreate(serPort,.0,.0);
+						while true
+							turnAngle(serPort, .2,1);
+							distanciaFrontal=ReadSonarMultiple(serPort,2);
+
+							if distanciaFrontal > 2.5 && distanciaFrontal <= 3
+								break;
+							end
+						end	
+					end
+
+				end
+				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%				
+				if distanciaDerecha > 0.4
+					SetDriveWheelsCreate(serPort,.0,.0);
+					pause(2);
+					turnAngle(serPort, .2,-15);
+					if distanciaDerecha > 0.4
+						travelDist(serPort,0.1,0.1);
+					end
+
+				end
+				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+			end           
 		end
+		
+		function retorno= vueltaCompleta(x_actual, y_actual,puntoInicialObstaculo)
+		% Nos avisa que hemos rodeado por completo el obstáculo.
+		% Entrada (x,y) y nos devuelve boolean.
+		% True si puntoInicialObstaculo=[x_actual, y_actual] con un margen de ~0.50.
 
+		dx = valorAbsoluto(x_actual)-valorAbsoluto(puntoInicialObstaculo(1))
+		dy = valorAbsoluto(y_actual)-valorAbsoluto(puntoInicialObstaculo(2))
+		retorno = false;
+		
+			if valorAbsoluto(dx) <= 0.3 && valorAbsoluto(dy) <= 0.3
+				retorno = true;
+			else
+				retorno = false;
+			end
+
+		end
+		function anguloGiro=getGiroDesdeAngulos(anguloInicial,anguloActual)
+			% esta funcion lo que hace es calcular el angulo de giro 
+			% que tiene que hacer dados dos angulos ejemplo
+			% anguloInicial 180 anguloActual 190 retornaria 10
+			if (anguloInicial < anguloActual)
+				anguloActual=  anguloActual - anguloInicial ; 
+				anguloGiro=-anguloActual;
+			else
+				anguloGiro = anguloInicial - anguloActual; 
+			end	
+		end
+		function anguloActual=getAnguloActual()
+			% esta funcion nos devuelve el angulo actual del robot pasado a 
+			% grados i ademas con intervalo de entre 0 i 360
+			[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
+           	anguloCorrecto=pasarAGrados(anguloRads);
+			anguloActual=adaptarGrados(anguloCorrecto);
+		end
+		function distancia=getDistancia(puntoA,puntoB)
+			%importante puntoA y puntoB son un vector de 2 coordenadas
+			distancia=sqrt( ((puntA(1)-puntoB(1)).^2)...
+						    + ((puntoA(2)-puntoB(2)).^2)...
+						   )
+
+		end
 		function distancia=hemArribat(posicioActual,objectiu)
-
+			
 			 distancia=sqrt( ((objectiu(1)-posicioActual(1)).^2)...
 						    + ((objectiu(2)-posicioActual(2)).^2)...
 						   )
@@ -80,31 +173,12 @@ function sessio3(serPort)
 			 end
 		end
 		
-		
-		function valor=Entre(sensor,Valorinferior,Valorsuperior)
-			if sensor > Valorinferior && sensor < Valorsuperior
-				valor=1;% se cumple
-			else
-				valor=0;
-			end
-
-		end
-
-		function calcularFrenada(serPort)
-			for i=0:200
-				%fprintf('frenoooooo\n');
-           		 		pause(0.0001);
-           		 		SetDriveWheelsCreate(serPort, .2,.2);
-           		 		
-           	end
-
-		end
 		function trobat=hayObstaculo()
 				 trobat=false;
 				 distDerecha= ReadSonarMultiple(serPort,1);
            		 distFrontal = ReadSonarMultiple(serPort,2);
            		 distIzquierda = ReadSonarMultiple(serPort,3);
-				if distDerecha < 0.3 || distIzquierda < 0.3  || distFrontal < 0.3 
+				if distDerecha < 0.5 || distIzquierda < 0.5  || distFrontal < 0.5 
 					trobat=true; 
 				else
 					trobat =false;
@@ -118,9 +192,9 @@ function sessio3(serPort)
 		end
 		function valor=valorAbsoluto(valor)
 			if valor < 0
-				valor=-valor
+				valor=-valor;
 			else
-				valor=valor
+				valor=valor;
 			end
 		end
 
@@ -131,54 +205,55 @@ function sessio3(serPort)
 		end
 		function DecisionAnguloGiro(x, y, anguloRads,objectiu)
 			% x , y->>>> posicion actual
-			%esta funcion decide hace donde girar el robot para que haga 
-			%el minimo giro posible y ademas se mueva hacia el angulo que 
-			%forma la linia mas corta hacia el objetivo atan(angulo)
+			% esta funcion decide hace donde girar el robot para que haga 
+			% el minimo giro posible y ademas se mueva hacia el angulo que 
+			% forma la linia mas corta hacia el objetivo atan(angulo)
 			% donde anguloRads es el angulo actual del robot en sentio antihorario
 			% donde objectiu es el punto x e y del punto final al que llegar
-			%donde angulo giro sera el angulo al que girara el robot hacia el objetivo
+			% donde angulo giro sera el angulo al que girara el robot hacia el objetivo
 			anguloGiro=0
-			catetoContiguo=0%para calcular el angulo
-			catetoOpuesto=0%para calcular el angulo
+			catetoContiguo=0	% para calcular el angulo
+			catetoOpuesto=0		% para calcular el angulo
 
 			anguloActual=pasarAGrados(anguloRads);
-			if objectiu(1) >= 0 && objectiu(2) >= 0%primer cuadrante	
+			if objectiu(1) >= 0 && objectiu(2) >= 0		% primer cuadrante	
 				catetoContiguo=objectiu(1)-x;
 				catetoOpuesto=objectiu(2)-y;
 				anguloGiro=atan(catetoOpuesto/catetoContiguo);
 				anguloGiro=pasarAGrados(anguloGiro);
 				anguloGiro=abs(anguloGiro)
 				turnAngle(serPort, .2,anguloGiro);
-			elseif objectiu(1) < 0 && objectiu(2) >= 0%segundo cuadrante
+			elseif objectiu(1) < 0 && objectiu(2) >= 0	% segundo cuadrante
 				catetoContiguo=abs(objectiu(1)-x);
 				catetoOpuesto=abs(objectiu(2)-y);
 				anguloGiro=atan(catetoOpuesto/catetoContiguo);
 				anguloGiro=pasarAGrados(anguloGiro);
 				anguloGiro=abs(180-anguloGiro)
 				turnAngle(serPort, .2,anguloGiro);
-			elseif objectiu(1)<0 && objectiu(2) < 0 %tercer cuadrande 
+			elseif objectiu(1)<0 && objectiu(2) < 0 	% tercer cuadrande 
 				catetoContiguo=abs(objectiu(1)-x);
 				catetoOpuesto=abs(objectiu(2)-y);
 				anguloGiro=atan(catetoOpuesto/catetoContiguo);
 				anguloGiro=pasarAGrados(anguloGiro)
 				anguloGiro=abs(180+anguloGiro)
 				turnAngle(serPort, .2,anguloGiro);
-			else                                    %cuarto cuadrande
+			else
+				pause(2);					% cuarto cuadrande
 				catetoContiguo=abs(objectiu(1)-x);
 				catetoOpuesto=abs(objectiu(2)-y);
 				anguloGiro=atan(catetoOpuesto/catetoContiguo);
 				anguloGiro=pasarAGrados(anguloGiro)
 				anguloGiro=abs(anguloGiro)
-				
+
 				turnAngle(serPort, .2,-anguloGiro);
 			end
 
 
 		end
 		function convertido=adaptarGrados(valor)
-			%esta funcion coge el valor i si es negativo lo 
-			%adapta para que el valor este en un intervalo de 
-			%0 a 360 no de 0 a 180 i -180 a 0
+			% esta funcion coge el valor i si es negativo lo 
+			% adapta para que el valor este en un intervalo de 
+			% 0 a 360 no de 0 a 180 i -180 a 0
 			if valor < 0
 				convertido=180 +valor
 				convertido=180+convertido;
@@ -198,4 +273,3 @@ function sessio3(serPort)
 			end
 		end
 end
-
