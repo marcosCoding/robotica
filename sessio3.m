@@ -3,11 +3,12 @@
 %////////////////////
 
 function sessio3(serPort)
-
-		bug1(serPort,[-5,-5]);
+		global qGoal;
+		bug1(serPort,[-5,-4]);
 		
 		
 		function bug1(serPort,objectiu)
+			qGoal=objectiu;
 			obstacle=false;
 			[BumpRight,BumpLeft,WheDropRight,WheDropLeft,WheDropCaster,BumpFront] = ...     
                  BumpsWheelDropsSensorsRoomba(serPort);
@@ -65,22 +66,43 @@ function sessio3(serPort)
 		function followBoundary(serPort,objectiu,puntoInicialObstaculo)
 			preFollowBoundary();%nos posicionamos para que el obstaculo quede a nuestra derecha
 			vectDistancias=[];
+			vectPosicionX=[];
+			vectPosicionY=[];
 			distanciaDerecha=ReadSonarMultiple(serPort,1);
-			i=0;
+			contador=1;
+			indice=1;
+			hemosDadoVuelta=false;
 			while true
-				i
-				[x_actual, y_actual]=OverheadLocalizationCreate(serPort);
-
-				beep();
-				if vueltaCompleta(x_actual, y_actual,puntoInicialObstaculo) && i > 300
 				
-
-					return;
+				[x_actual, y_actual]=OverheadLocalizationCreate(serPort);
+				posicionActual=[];
+				posicionActual(1)=x_actual;
+				posicionActual(2)=y_actual;
+				vectDistancias(indice)=getDistancia(posicionActual,qGoal);
+				indice=indice+1;
+				if vueltaCompleta(x_actual, y_actual,puntoInicialObstaculo) && contador > 300
+					%quiere decir que hemos dado una vuelta ahora miraremos las distancias
+					%que hemos ido guardando para cuando estemos muy cercanos a la mejor ir hacia el 
+					%objetivo
+					hemosDadoVuelta=true;
 				end
 				pause(0.0001);
 				distanciaDerecha=ReadSonarMultiple(serPort,1);
 				distanciaFrontal=ReadSonarMultiple(serPort,2);
+				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+				if hemosDadoVuelta
+					beep();
+					distanciaActual=[];
+					distanciaActual(1)=x_actual;
+					distanciaActual(2)=y_actual;
+					dist=getDistancia(distanciaActual,qGoal);
+					vectDistancias
+					if puntoMasCercanRodeado(dist,vectDistancias)
+						fprintf('podemos dejar de rodear el objeto\n');
+						return;
+					end
 
+				end
 
 				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 				if distanciaDerecha < 0.20
@@ -89,8 +111,14 @@ function sessio3(serPort)
 				end
 				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 				if distanciaDerecha >= 0.20 && distanciaDerecha <= 0.40
-						SetDriveWheelsCreate(serPort,.1,.1);	
-						i=i+1;
+						SetDriveWheelsCreate(serPort,.1,.1);
+						%%%%% asignamos distancia al punto y posicion
+						
+						
+						%vectPosicionX(i)=x_actual;
+						%vectPosicionY(i)=y_actual;
+						contador=contador+1;
+						%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 					if distanciaFrontal < 0.3
 						SetDriveWheelsCreate(serPort,.0,.0);
 						while true
@@ -122,10 +150,10 @@ function sessio3(serPort)
 		function retorno= vueltaCompleta(x_actual, y_actual,puntoInicialObstaculo)
 		% Nos avisa que hemos rodeado por completo el obstáculo.
 		% Entrada (x,y) y nos devuelve boolean.
-		% True si puntoInicialObstaculo=[x_actual, y_actual] con un margen de ~0.50.
+		% True si puntoInicialObstaculo=[x_actual, y_actual] con un margen de ~0.30.
 
-		dx = valorAbsoluto(x_actual)-valorAbsoluto(puntoInicialObstaculo(1))
-		dy = valorAbsoluto(y_actual)-valorAbsoluto(puntoInicialObstaculo(2))
+		dx = valorAbsoluto(x_actual)-valorAbsoluto(puntoInicialObstaculo(1));
+		dy = valorAbsoluto(y_actual)-valorAbsoluto(puntoInicialObstaculo(2));
 		retorno = false;
 		
 			if valorAbsoluto(dx) <= 0.3 && valorAbsoluto(dy) <= 0.3
@@ -133,6 +161,25 @@ function sessio3(serPort)
 			else
 				retorno = false;
 			end
+
+		end
+		function  condicion= puntoMasCercanRodeado(distanciaActual,vectorDistancias)
+			%esta funcion nos mira la diferencia entre la distancia actual al qGoal
+			% y las distancias guardadas en el vectorDistancias
+			%si la resta de la actual con alguna de todas las que hay en el vector 
+			%es menor que ~0.5 ese es nuestro margen quiere decir que podemos dejar de rodear
+			%el objeto
+			condicion=false;
+			valorMinimo=min(vectorDistancias);
+			diferencial=valorAbsoluto(distanciaActual-valorMinimo);
+			if diferencial <= 0.5
+					condicion=true;
+					return;
+			end
+
+			
+
+
 
 		end
 		function anguloGiro=getGiroDesdeAngulos(anguloInicial,anguloActual)
@@ -155,7 +202,7 @@ function sessio3(serPort)
 		end
 		function distancia=getDistancia(puntoA,puntoB)
 			%importante puntoA y puntoB son un vector de 2 coordenadas
-			distancia=sqrt( ((puntA(1)-puntoB(1)).^2)...
+			distancia=sqrt( ((puntoA(1)-puntoB(1)).^2)...
 						    + ((puntoA(2)-puntoB(2)).^2)...
 						   )
 
