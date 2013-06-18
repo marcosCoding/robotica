@@ -4,8 +4,10 @@
 
 function sessio3(serPort)
 		global qGoal;
-		%bug1(serPort,[-5,-4]);
-		bug1(serPort,[-3,-4])
+		
+		[xTarget, yTarget]=ginput(1);
+		bug1(serPort,[xTarget,yTarget]);
+		
 		
 		
 		function bug1(serPort,objectiu)
@@ -24,7 +26,6 @@ function sessio3(serPort)
 				end 
 				if hayObstaculo()
 					SetDriveWheelsCreate(serPort,.0,.0);
-
 				end
 				if hemArribat([x, y], objectiu)
 					fprintf('hemos llegado a la meta , bien!!!!');
@@ -33,24 +34,23 @@ function sessio3(serPort)
 				[x, y]=OverheadLocalizationCreate(serPort);
 				puntoInicialObstaculo=[x, y]
 				followBoundary(serPort,objectiu,puntoInicialObstaculo);
-				desPegarmeDeObjeto();
-				DecisionAnguloGiro(objectiu);
-				
-				beep();
-				[x, y,anguloRads]=OverheadLocalizationCreate(serPort);
-					while ~hayObstaculo() && ~hemArribat([x, y], objectiu)
-							[x, y]=OverheadLocalizationCreate(serPort);
-						 	SetDriveWheelsCreate(serPort,.5,.5);
-
+				DecisionAnguloGiro(qGoal);
+				while true
+					pause(0.001);
+					SetDriveWheelsCreate(serPort,.1,.1);
+					distFrontal = ReadSonarMultiple(serPort,2);
+					[x, y]=OverheadLocalizationCreate(serPort);
+					if distFrontal < 0.2
+						%paramos i seguimos con lo de antes
+						break;
 					end
 					if hemArribat([x, y], objectiu)
-							fprintf('hemos llegado a la meta , bien!!!!');
-							return;
+						display('hemos llegado a la meta , bien!!!!');
+						return;
 					end
-					if hayObstaculo()
-							SetDriveWheelsCreate(serPort,.0,.0);
 
-					end
+				end
+
 			end	
 		end
 		
@@ -120,13 +120,11 @@ function sessio3(serPort)
 					dist=getDistancia(distanciaActual,qGoal);
 					vectDistancias
 					if puntoMasCercanRodeado(dist,vectDistancias)
-						fprintf('podemos dejar de rodear el objeto\n');
+						fprintf('podemos dejar de rodear el objeto');
 						
 						return;
 					end
-
 				end
-
 				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 				if distanciaDerecha < 0.20
 					SetDriveWheelsCreate(serPort,.0,.0);
@@ -135,11 +133,6 @@ function sessio3(serPort)
 				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 				if distanciaDerecha >= 0.20 && distanciaDerecha <= 0.40
 						SetDriveWheelsCreate(serPort,.1,.1);
-						%%%%% asignamos distancia al punto y posicion
-						
-						
-						%vectPosicionX(i)=x_actual;
-						%vectPosicionY(i)=y_actual;
 						contador=contador+1;
 						%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 					if distanciaFrontal < 0.3
@@ -220,11 +213,6 @@ function sessio3(serPort)
 					condicion=true;
 					return;
 			end
-
-			
-
-
-
 		end
 		function anguloGiro=getGiroDesdeAngulos(anguloInicial,anguloActual)
 			% esta funcion lo que hace es calcular el angulo de giro 
@@ -295,13 +283,10 @@ function sessio3(serPort)
 			grados=double(angulo*(180/pi));
 		end
 		function DecisionAnguloGiro(objectiu)
-			
-				
 				qGoal=objectiu
 				[x1, y1,angulo]=OverheadLocalizationCreate(serPort);
 				angulo=pasarAGrados(angulo);
 				angulo=adaptarGrados(angulo);
-
 				if angulo <=  180
 					turnAngle(serPort, .2,-angulo);
 				else
@@ -316,8 +301,7 @@ function sessio3(serPort)
 				angulo=atan(dy/dx);
 				anguloGiro=pasarAGrados(angulo);
 				if x2 >= x1 && y2 >= y1
-					turnAngle(serPort, .2,anguloGiro);
-					
+					turnAngle(serPort, .2,anguloGiro);		
 				elseif x2 <= x1 && y2 >= y1
 					turnAngle(serPort, .2,180-anguloGiro);
 					anguloExacto=(180-anguloGiro)
@@ -333,23 +317,6 @@ function sessio3(serPort)
 			    	turnAngle(serPort, .2,-anguloGiro);
 			    	beep();
 			    end
-
-
-				%turnAngle(serPort, .2,-anguloGiro);
-
-				[x1, y1,angulo]=OverheadLocalizationCreate(serPort);
-				anguloExacto=anguloGiro+180
-				anguloActual=pasarAGrados(angulo);
-				anguloNoExacto=adaptarGrados(anguloActual)
-				%constante=valorAbsoluto(anguloExacto-anguloNoExacto);
-				
-				%turnAngle(serPort, .2,constante);
-				puntoA=[x1, y1]
-				puntoB = objectiu;
-
-				%dist=getDistancia(puntoA,puntoB);
-				%travelDist(serPort,0.5,dist);
-
 		end
 		function convertido=adaptarGrados(valor)
 			% esta funcion coge el valor i si es negativo lo 
@@ -362,8 +329,6 @@ function sessio3(serPort)
 				convertido=valor;
 			end
 		end
-
-
 			%%%%%%%%%%%%%%%%%%%%%%%%
 		function Signal()
 			% Make signal sound (4 beeps)
