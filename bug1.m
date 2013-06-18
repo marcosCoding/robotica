@@ -2,7 +2,7 @@
 % sessio3.m
 %////////////////////
 
-function sessio3(serPort)
+function bug1(serPort)
 		global qGoal;
 		
 		[xTarget, yTarget]=ginput(1);
@@ -28,7 +28,8 @@ function sessio3(serPort)
 					SetDriveWheelsCreate(serPort,.0,.0);
 				end
 				if hemArribat([x, y], objectiu)
-					fprintf('hemos llegado a la meta , bien!!!!');
+					display('hemos llegado al punto : ');
+					objectiu
 					return;
 				end
 				[x, y]=OverheadLocalizationCreate(serPort);
@@ -45,7 +46,8 @@ function sessio3(serPort)
 						break;
 					end
 					if hemArribat([x, y], objectiu)
-						display('hemos llegado a la meta , bien!!!!');
+						display('hemos llegado al punto : ');
+						objectiu
 						return;
 					end
 
@@ -67,8 +69,8 @@ function sessio3(serPort)
 			[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
            	anguloActual=pasarAGrados(anguloRads);
            	i=1;
-           	while i < 13 
-           		turnAngle(serPort, .2,30); 
+           	while i < 15
+           		turnAngle(serPort, .2,10); 
            		distancia(i)= ReadSonarMultiple(serPort,1)
 				[x, y, anguloRads]=OverheadLocalizationCreate(serPort);
            		angulos(i)=adaptarGrados(pasarAGrados(anguloRads));
@@ -101,8 +103,12 @@ function sessio3(serPort)
 				posicionActual=[];
 				posicionActual(1)=x_actual;
 				posicionActual(2)=y_actual;
+				ancias(indice)=getDistancia(posicionActual,qGoal);
 				vectDistancias(indice)=getDistancia(posicionActual,qGoal);
 				indice=indice+1;
+				contador=contador+1;
+				contador
+
 				if vueltaCompleta(x_actual, y_actual,puntoInicialObstaculo) && contador > 300
 					%quiere decir que hemos dado una vuelta ahora miraremos las distancias
 					%que hemos ido guardando para cuando estemos muy cercanos a la mejor ir hacia el 
@@ -133,7 +139,7 @@ function sessio3(serPort)
 				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 				if distanciaDerecha >= 0.20 && distanciaDerecha <= 0.40
 						SetDriveWheelsCreate(serPort,.1,.1);
-						contador=contador+1;
+						%contador=contador+1;
 						%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 					if distanciaFrontal < 0.3
 						SetDriveWheelsCreate(serPort,.0,.0);
@@ -245,7 +251,7 @@ function sessio3(serPort)
 						    + ((objectiu(2)-posicioActual(2)).^2)...
 						   )
 			 % distancia;
-			 if distancia < 0.3
+			 if distancia < 0.7
 			 	distancia=true;
 			 else 
 			 	distancia=false;
@@ -257,7 +263,7 @@ function sessio3(serPort)
 				 distDerecha= ReadSonarMultiple(serPort,1);
            		 distFrontal = ReadSonarMultiple(serPort,2);
            		 distIzquierda = ReadSonarMultiple(serPort,3);
-				if distDerecha < 0.5 || distIzquierda < 0.5  || distFrontal < 0.5 
+				if distDerecha < 0.3 || distIzquierda < 0.3  || distFrontal < 0.3 
 					trobat=true; 
 				else
 					trobat =false;
