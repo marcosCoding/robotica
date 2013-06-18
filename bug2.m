@@ -5,9 +5,10 @@
 function bug2(serPort)
 		global qGoal;
 		global puntInicial;
+		global limite
 		[xTarget, yTarget]=ginput(1);
 		bug2(serPort,[xTarget,yTarget]);
-			
+		;%la variable limite  un contador que nos sirve para decidir cuando abandonar el objeto	
 		
 		function bug2(serPort,objectiu)
 
@@ -86,19 +87,6 @@ function bug2(serPort)
            		turnAngle(serPort, .2,-anguloGiro);
          	end    				
 		end
-		function condicion=abandonarObjeto(contador)
-				[x_actual, y_actual]=OverheadLocalizationCreate(serPort);
-				condicion=false;
-				if contador > 1000
-					contador
-						if eqContinua (puntInicial, qGoal, [x_actual, y_actual])
-							beep();
-							DecisionAnguloGiro(qGoal);
-							condicio=true;
-							return;
-						end
-				end
-		end	
 		function followBoundary(serPort,objectiu,puntoInicialObstaculo)
 			preFollowBoundary();%nos posicionamos para que el obstaculo quede a nuestra derecha
 			vectDistancias=[];
@@ -115,11 +103,11 @@ function bug2(serPort)
 				posicionActual(2)=y_actual;
 				vectDistancias(indice)=getDistancia(posicionActual,qGoal);
 				indice=indice+1;
-		
+				contador=contador+1;
 				distanciaDerecha=ReadSonarMultiple(serPort,1);
 				distanciaFrontal=ReadSonarMultiple(serPort,2);
 				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-				if contador > 1000
+				if contador > 200
 					contador
 						if eqContinua (puntInicial, qGoal, [x_actual, y_actual])
 							beep();
@@ -135,23 +123,23 @@ function bug2(serPort)
 				end
 				%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 				if distanciaDerecha >= 0.20 && distanciaDerecha <= 0.40
-						SetDriveWheelsCreate(serPort,.1,.1);
-						contador=contador+1;
+					display('error');
+					if contador > 200
+						if eqContinua (puntInicial, qGoal, [x_actual, y_actual])
+								beep();
+								DecisionAnguloGiro(qGoal);
+								condicio=true;
+								return;
+						end
+					end
+					SetDriveWheelsCreate(serPort,.1,.1);
+					%contador=contador+1;
 						%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 					if distanciaFrontal < 0.3
 						SetDriveWheelsCreate(serPort,.0,.0);
 						while true
 							turnAngle(serPort, .2,1);
 							distanciaFrontal=ReadSonarMultiple(serPort,2);
-							if contador > 1000
-								contador
-									if eqContinua (puntInicial, qGoal, [x_actual, y_actual])
-										beep();
-										DecisionAnguloGiro(qGoal);
-										condicio=true;
-										return;
-									end
-							end
 							if distanciaFrontal > 2.5 && distanciaFrontal <= 3
 								break;
 							end
@@ -294,13 +282,6 @@ function bug2(serPort)
 			    	beep();
 			    end
 
-				[x1, y1,angulo]=OverheadLocalizationCreate(serPort);
-				anguloExacto=anguloGiro+180;
-				anguloActual=pasarAGrados(angulo);
-				anguloNoExacto=adaptarGrados(anguloActual);
-				puntoA=[x1, y1]
-				puntoB = objectiu;
-
 		end
 		function convertido=adaptarGrados(valor)
 			% esta funcion coge el valor i si es negativo lo 
@@ -320,7 +301,7 @@ function bug2(serPort)
 			izqRes=((pertenece(1)-puntoA(1))/vector(1))
 			derRes=((pertenece(2)-puntoA(2))/vector(2))
 			error=valorAbsoluto(izqRes-derRes)
-			if error < 0.2
+			if error < 0.1
 				display('El punto pertenece a la recta ')
 				condicion=true;
 				return;
