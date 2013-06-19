@@ -1,4 +1,3 @@
-
 function randomWalk(serPort)
   randomWalk(serPort);
 	function randomWalk(serPort)
@@ -6,22 +5,7 @@ function randomWalk(serPort)
 		[BumpRight,BumpLeft,WheDropRight,WheDropLeft,WheDropCaster ...
 		BumpFront]= BumpsWheelDropsSensorsRoomba(serPort);
 		i=0;
-		while true
-			[BumpRight,BumpLeft,WheDropRight,WheDropLeft,WheDropCaster ...
-			BumpFront]= BumpsWheelDropsSensorsRoomba(serPort);
-			pause(0.001);
-			if BumpLeft
-				SetDriveWheelsCreate(serPort,.0,.0);
-				turnAngle(serPort, .2,-20);
-			elseif BumpRight
-				SetDriveWheelsCreate(serPort,.0,.0);
-				turnAngle(serPort, .2,20);
-			elseif BumpFront 
-				SetDriveWheelsCreate(serPort,.0,.0);
-				turnAngle(serPort, .2,-40);
-			end
-			 SetDriveWheelsCreate(serPort,.2,.2);
-		end
+		while
 	
 	
 	end
